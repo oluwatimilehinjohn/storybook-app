@@ -1,26 +1,12 @@
-<h1>stories</h1>
-<div class="row">
+<section class="page-heading"><div><p class="eyebrow">The community bookshelf</p><h1>{{#if authorName}}Stories by {{authorName}}{{else}}A world of stories<span class="brand-dot">.</span>{{/if}}</h1><p>{{#if authorName}}A collection of their public moments, memories, and reflections.{{else}}Different lives. Shared experiences. Find a story that stays with you.{{/if}}</p></div>{{#if authorName}}<a href="/stories" class="text-link"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> All public stories</a>{{/if}}</section>
+<div class="section-heading"><div class="heading-with-count"><h2>{{#if authorName}}Public stories{{else}}Fresh from the community{{/if}}</h2><span class="count-badge">{{stories.length}}</span></div>{{#if stories}}<label class="search-field" data-filter-controls hidden><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><span class="sr-only">Search stories by title</span><input type="search" data-story-search placeholder="Find a story…"></label>{{/if}}</div>
+<div class="story-grid">
     {{#each stories}}
-        <div class="col s12 m4">
-            <div class="card">
-                <div class="card-image">
-                    {{{editIcon user ../user _id}}}
-                </div>
-                <div class="card-content center-align">
-                    <h5>{{title}}</h5>
-                    <p>{{stripTags (truncate body 20)}}</p>
-                    <br>
-                    <div class="chip">
-                       <img src="{{user.image}}" alt="">
-                       <a href="/stories/user/{{user._id}}">{{user.displayName}}</a> 
-                    </div>
-                </div>
-                <div class="card-action center-align">
-                     <a href="/stories/{{_id}}" class="btn grey">Read more</a>
-                </div>
-            </div>
-        </div>
-    {{else}}
-        <p>you have no stories</p>
-    {{/each}}
-</div>
+    <article class="story-card" data-story-item data-title="{{title}}">
+        <div class="card-topline"><span class="eyebrow">A life in words</span>{{{editIcon user ../user _id}}}</div>
+        <h2><a href="/stories/{{_id}}">{{title}}</a></h2><p class="story-excerpt">{{truncate (stripTags body) 180}}</p>
+        <div class="story-card-author"><span class="avatar">{{#if user.image}}<img src="{{user.image}}" alt="" loading="lazy" referrerpolicy="no-referrer">{{else}}<i class="fa-regular fa-user" aria-hidden="true"></i>{{/if}}</span><div><a href="/stories/user/{{user._id}}">{{user.displayName}}</a><span>{{formatDate createdAt 'MMM D, YYYY'}}</span></div></div>
+        <div class="story-card-bottom"><span>{{readingTime body}} min read</span><a href="/stories/{{_id}}" class="text-link" aria-label="Read {{title}}">Read story <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></div>
+    </article>
+    {{else}}<div class="empty-state full-width"><span class="empty-icon"><i class="fa-solid fa-book-open" aria-hidden="true"></i></span><h2>A new chapter is waiting.</h2><p>{{#if authorName}}This author hasn’t shared any public stories yet.{{else}}There are no public stories yet. Share a moment and start the conversation.{{/if}}</p><a href="/stories/add" class="button button-primary">Write a story</a></div>{{/each}}
+</div><p class="filter-result" data-filter-result role="status" hidden></p>

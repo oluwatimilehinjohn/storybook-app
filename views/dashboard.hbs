@@ -1,37 +1,13 @@
-<h6>Dashboard</h6>
-<h3>Welcome {{name}}</h3>
-<p>here are your stories</p>
-{{#if stories}}
-    <table class="striped">
-        <thead>
-            <tr>
-                <th>Title</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {{#each stories}}
-                <tr>
-                   <td><a href="/stories/{{__id}}">{{title}}</a></td>
-                     <td>{{formatDate createdAt 'MMMM Do YYYY, h:mm:ss a'}}</td>
-                     <td><span class="dash-status">{{status}}</span></td>
-                     <td>
-                        <a href="/stories/edit/{{_id}}" class="btn btn-float">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                        <form action="/stories/{{_id}}" method="post" id="delete-form">
-                            <input type="hidden" name="_method" value="DELETE">
-                            <button type="submit" class="btn red">
-                                    <i class="fas fa-trash"></i>                
-                            </button>
-                        </form>
-                     </td>
-                </tr>
-            {{/each}}
-        </tbody>
-    </table>
-{{else}}
-<p>you have no stories</p>
-{{/if}}
+<section class="page-heading"><div><p class="eyebrow">Your personal collection</p><h1>Welcome back, {{name}}<span class="brand-dot">.</span></h1><p>A little reflection. A new perspective. Your next story starts here.</p></div></section>
+<section class="writing-banner"><div class="banner-icon"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></div><div><h2>What’s on your mind today?</h2><p>A moment worth remembering is a story worth writing.</p></div><a href="/stories/add" class="button button-primary">Write a story <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></section>
+<section aria-labelledby="collection-title">
+    <div class="section-heading"><div class="heading-with-count"><h2 id="collection-title">My stories</h2><span class="count-badge">{{stories.length}}</span></div><a href="/stories" class="text-link">Explore the community <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a></div>
+    {{#if stories}}
+    <div class="collection-tools" data-filter-controls hidden><div class="filter-tabs" role="group" aria-label="Filter stories by visibility"><button class="filter-tab" type="button" data-filter="all" aria-pressed="true">All stories</button><button class="filter-tab" type="button" data-filter="public" aria-pressed="false">Public</button><button class="filter-tab" type="button" data-filter="private" aria-pressed="false">Private</button></div><label class="search-field"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><span class="sr-only">Search your stories</span><input type="search" data-story-search placeholder="Find a story…"></label></div>
+    <div class="story-table-wrap"><table class="story-table"><thead><tr><th scope="col">Story</th><th scope="col">Created</th><th scope="col">Visibility</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>
+    {{#each stories}}<tr data-story-item data-title="{{title}}" data-status="{{status}}"><td data-label="Story"><a class="table-story-title" href="/stories/{{_id}}">{{title}}</a><p class="table-excerpt">{{truncate (stripTags body) 85}}</p></td><td data-label="Created" class="date-cell">{{formatDate createdAt 'MMM D, YYYY'}}</td><td data-label="Visibility"><span class="status-badge status-{{status}}"><i class="fa-solid {{#if (eq status 'private')}}fa-lock{{else}}fa-globe{{/if}}" aria-hidden="true"></i>{{status}}</span></td><td class="row-actions"><a href="/stories/edit/{{_id}}" class="icon-button" aria-label="Edit {{title}}" title="Edit story"><i class="fa-regular fa-pen-to-square" aria-hidden="true"></i></a><form action="/stories/{{_id}}" method="post" data-delete-form data-title="{{title}}"><input type="hidden" name="_method" value="DELETE"><button type="submit" class="icon-button delete-button" aria-label="Delete {{title}}" title="Delete story"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></button></form></td></tr>{{/each}}
+    </tbody></table></div><p class="filter-result" data-filter-result role="status" hidden></p>
+    {{else}}
+    <div class="empty-state"><span class="empty-icon"><i class="fa-regular fa-bookmark" aria-hidden="true"></i></span><h3>Your story starts here.</h3><p>A small memory, a big idea, or something in between.<br>Give it a home in your collection.</p><a href="/stories/add" class="button button-primary">Write your first story <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></div>
+    {{/if}}
+</section>

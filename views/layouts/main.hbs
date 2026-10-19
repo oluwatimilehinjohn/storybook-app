@@ -2,28 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#214e40">
+    <title>{{#if pageTitle}}{{pageTitle}} · {{/if}}Storybooks</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha512-MV7K8+y+gLIBoVD59lQIYicR65iaqukzvf/nwasF0nqhPay5w/9lJmVM2hMDcnK1OnMGCdVK+iQrJ7lzPJQd1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <title>storybook</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/app.js" defer></script>
 </head>
 <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
     {{> _header}}
-    {{> _add_btn}}
-    <div class="container">
-         {{{body}}}
-    </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ckeditor5/35.4.0/ckeditor.min.js" integrity="sha512-ZQuCYIBUYo0YSpka4/IcRd/4CiBh2LhXdxf/raBrLd+o3yquriJGfWE6JzUPk1KO0aJZn+b8987maU8Anrr10w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script>
-         M.Sidenav.init(document.querySelector('.sidenav'))
-         M.FormSelect.init(document.querySelector('#status'))
-
-        CKEDITOR.replace('body', {
-        plugins: 'wysiwygarea, toolbar, basicstyles, link'
-     })
-    </script>
+    <main id="main-content" class="site-main" tabindex="-1">
+        {{#if notice}}<div class="notice" role="status"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> {{notice}}</div>{{/if}}
+        {{{body}}}
+    </main>
+    {{> _footer}}
+    <dialog id="delete-dialog" class="confirmation-dialog" aria-labelledby="delete-heading" aria-describedby="delete-description">
+        <div class="dialog-symbol"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></div>
+        <h2 id="delete-heading">Delete this story?</h2>
+        <p id="delete-description">“<span data-delete-title></span>” will be permanently deleted. This cannot be undone.</p>
+        <div class="button-row"><button type="button" class="button button-secondary" data-close-dialog autofocus>Keep story</button><button type="button" class="button button-danger" data-confirm-delete>Delete story</button></div>
+    </dialog>
 </body>
 </html>

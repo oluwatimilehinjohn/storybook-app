@@ -2,7 +2,7 @@
 
 const connectDB = async () => {
     try {
-        const conn = await mongoose.connect('mongodb+srv://timmy:hazel@cluster0.qnd828z.mongodb.net/?retryWrites=true&w=majority', {
+        const conn = await mongoose.connect(process.env.MONGO_URI, {
             useNEWurlparser: true,
             useunifiedTopology: true,
         })

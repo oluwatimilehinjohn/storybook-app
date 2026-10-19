@@ -1,36 +1,6 @@
-<h3>Edit Story</h3>
-<div class="row">
-    <form action="/stories/{{story._id}}" method="POST" class="col s12">
-        <input type="hidden" name="_method" value="PUT">
-        <div class="row">
-            <div class="input-field">
-                <input type="text" id="title" name="title">
-                <label for="title">Title</label>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="input-field">
-                <select name="status" id="status">
-                    {{#select story.status}}
-                    <option value="public" selected> public</option>
-                    <option value="private">private</option>   
-                    {{/select}}
-                </select>
-                <label for="status">status</label>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="input-field">
-                <h5>Edit your story:</h5>
-                <textarea name="body" id="body" cols="30" rows="10">{{story.body}}</textarea>
-            </div>
-        </div>
-
-        <div class="row">
-            <input type="submit" value="save" class="btn">
-            <a href="/dashboard" class="btn orange">cancel</a>
-        </div>
-    </form>
-</div>
+<a href="/dashboard" class="back-link"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> My stories</a>
+<section class="page-heading editor-heading"><div><p class="eyebrow">Every word is yours</p><h1>Refine your story<span class="brand-dot">.</span></h1><p>A fresh thought. A finishing touch. Pick up where you left off.</p></div></section>
+<form action="/stories/{{story._id}}" method="POST" class="story-form" data-story-form>
+    <input type="hidden" name="_method" value="PUT">
+    {{> _story_fields editing=true}}
+</form>

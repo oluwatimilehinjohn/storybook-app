@@ -1,24 +1,2 @@
-<div class="row">
-    <div class="col s12 m8">
-        <h3>{{story.title}}
-            <small>{{{editIcon story.user user story._id false}}}</small>
-        </h3>
-        <div class="card story">
-            <div class="card-content">
-                <span class="card-title">{{formatDate date 'MMMM Do YYYY, h:mm:ss a'}}</span>
-                {{{story.body}}}
-            </div>
-        </div>
-    </div>
-    <div class="col s12 m4">
-        <div class="card center-align">
-            <div class="card-content">
-                <span class="card-title">{{story.user.displayName}}</span>
-                <img src="{{story.user.image}}" class="circle responsive-img img-small" alt="">
-            </div>
-            <div class="card-action">
-                <a href="/stories/user/{{story.user._id}}">more from {{story.user.firstName}}</a>
-            </div>
-        </div>
-    </div>
-</div>
+<a href="{{#if (eq story.status 'private')}}/dashboard{{else}}/stories{{/if}}" class="back-link"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> {{#if (eq story.status 'private')}}My stories{{else}}Discover stories{{/if}}</a>
+<article class="reading-layout"><div class="reading-main"><header class="reading-heading"><span class="status-badge status-{{story.status}}"><i class="fa-solid {{#if (eq story.status 'private')}}fa-lock{{else}}fa-globe{{/if}}" aria-hidden="true"></i>{{story.status}} story</span><h1>{{story.title}}</h1><div class="reading-meta"><span>{{formatDate story.createdAt 'MMMM D, YYYY'}}</span><span aria-hidden="true">·</span><span>{{readingTime story.body}} min read</span>{{{editIcon story.user user story._id false}}}</div></header><div class="story-body">{{{story.body}}}</div><div class="end-mark" aria-hidden="true">* &nbsp; * &nbsp; *</div><a href="/stories" class="text-link">Discover another story <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></div><aside class="author-card" aria-label="About the author"><p class="eyebrow">The voice behind the story</p><span class="avatar avatar-large">{{#if story.user.image}}<img src="{{story.user.image}}" alt="" referrerpolicy="no-referrer">{{else}}<i class="fa-regular fa-user" aria-hidden="true"></i>{{/if}}</span><h2>{{story.user.displayName}}</h2><p>There’s always another story to tell.</p><a href="/stories/user/{{story.user._id}}" class="text-link">More from {{story.user.firstName}} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></aside></article>

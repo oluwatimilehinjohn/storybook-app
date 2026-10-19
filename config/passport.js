@@ -6,9 +6,9 @@ const User = require('../models/User')
 //google strategy
 module.exports = function(passport) {
     passport.use(new GoogleStrategy({
-        clientID: '724869068922-g86gn6c3l9tvgfdpf14qf5junmatbu1m.apps.googleusercontent.com',
-        clientSecret: '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',
-        callbackURL: 'http://writeestoriess.onrender.com/auth/google/callback'
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        callbackURL: process.env.GOOGLE_CALLBACK_URL
     },    
     async (accessToken, refreshToken, profile, done) => {
         const newUser = {
@@ -20,7 +20,7 @@ module.exports = function(passport) {
         }
 
         try {
-            let user = await User.findOne({ googleId: profile.Id })
+            let user = await User.findOne({ googleId: profile.id })
 
             if (user) {
                 done(null, user)
@@ -30,6 +30,7 @@ module.exports = function(passport) {
             }
         } catch (err) {
             console.error(err)
+            done(err)
         }
 
     }))

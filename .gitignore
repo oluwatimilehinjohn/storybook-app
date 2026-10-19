@@ -1,3 +1,9 @@
 package-lock.json
 node-modules/*
 .idea/*
+node_modules/
+.preview/
+config/config.env
+.env
+.env.*
+!.env.example
