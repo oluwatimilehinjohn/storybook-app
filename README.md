@@ -39,6 +39,16 @@ The callback path is verified in code: `app.js` mounts `routes/auth.js` at `/aut
 
 The Render Blueprint in `render.yaml` declares the same commands. It prompts for the database/OAuth values and generates a session secret for Blueprint-managed services. Adding the file alone does not change an existing dashboard-managed service, supply credentials, or configure Google Cloud. Apply the instructions above to the existing service; do not create a duplicate service just to use this file.
 
+### Publishing the preview designs
+
+The designs in `.preview/` are implemented by the real Handlebars templates and shared CSS. Screenshots are visual references, not images to embed as pages. Login, dashboard, discovery, author collections, reading, add/edit forms, empty states, and error pages all use those shared foundations with real application data.
+
+Materialize, Font Awesome (including fonts), and CKEditor are bundled under `public/vendor/` at their existing versions. They no longer depend on external asset CDNs. Shared styles and scripts have content-versioned URLs; page responses use `Cache-Control: no-store`. Static assets are served before session middleware so a session-store failure cannot prevent styles from loading. The `X-Storybooks-UI` response header identifies the asset revision.
+
+If Render still displays the old design, check the service's connected repository, branch, and deployed commit, then deploy the latest commit containing these templates and assets. A local screenshot or GitHub push alone does not prove Render has successfully deployed it. Fix any missing environment variables or startup errors listed above if the new deployment fails. On inspection during this change, the configured public domain returned the original login markup, while the checked-out templates rendered the preview design.
+
+After a successful deployment, verify the landing page contains the redesigned introduction, its HTML references `/css/style.css?v=...` and local `/vendor/` assets, and the response includes `X-Storybooks-UI`. Then sign in and check the remaining pages. Changing browsers or clearing browser data cannot replace an older release still being served by Render.
+
 ### Runtime and package manager
 
 This project uses **npm**, with a committed `package-lock.json` (lockfile version 2). There is no Yarn lockfile. Keep the lockfile and use `npm ci` locally for an exact development installation; Render uses `npm ci --omit=dev`. `node_modules` is ignored and supplied by installation instead of committed copies. No separate build/transpile step exists for this Express/Handlebars application. The Render start command stays `node app.js`, which does not require the development-only `cross-env` package.

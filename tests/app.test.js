@@ -30,6 +30,44 @@ test('dashboard uses real story IDs and edit retains title and private visibilit
     assert.match(html, /value="private" selected/)
     assert.doesNotMatch(html, /value="public" selected/)
 })
+
+test('every page loads the same versioned local design assets, including error pages', async () => {
+    const { assets } = require('../config/presentation')
+    const { escapeExpression } = require('handlebars')
+    for (const url of ['/', '/dashboard', '/stories', '/stories/add', '/stories/edit/507f191e810c19729de860ea', '/stories/507f191e810c19729de860ea', '/stories/user/' + fixture.owner.id, '/test/empty', '/missing', '/test/error']) {
+        const response = await request(url)
+        const html = await response.text()
+        assert.ok(response.headers.get('x-storybooks-ui'), url)
+        assert.equal(response.headers.get('cache-control'), 'no-store', url)
+        assert.ok(html.includes(escapeExpression(assets.styles)), url + ' uses versioned shared styles')
+        assert.ok(html.includes(escapeExpression(assets.icons)), url + ' uses local icon fonts')
+        assert.doesNotMatch(html, /https:\/\/(cdnjs\.cloudflare\.com|cdn\.ckeditor\.com)/)
+    }
+    for (const asset of Object.values(assets)) {
+        const response = await request(asset, { headers: { 'x-test-user': 'guest', cookie: 'connect.sid=expired-session' } })
+        assert.equal(response.status, 200, asset)
+        assert.match(response.headers.get('content-type'), /css|javascript/, asset)
+        assert.equal(response.headers.get('set-cookie'), null, asset + ' does not use sessions')
+    }
+})
+
+test('static design assets remain available even when downstream session middleware fails', async () => {
+    const express = require('express')
+    const { configurePresentation, assets } = require('../config/presentation')
+    const app = express()
+    configurePresentation(app)
+    app.use((req, res) => res.status(503).send('Session store unavailable'))
+    const isolated = app.listen(0, '127.0.0.1')
+    await new Promise(resolve => isolated.once('listening', resolve))
+    try {
+        const origin = 'http://127.0.0.1:' + isolated.address().port
+        assert.equal((await fetch(origin + assets.styles)).status, 200)
+        assert.equal((await fetch(origin + assets.icons)).status, 200)
+        assert.equal((await fetch(origin + '/dashboard')).status, 503)
+    } finally {
+        await new Promise(resolve => isolated.close(resolve))
+    }
+})
 test('authentication still protects every story operation', async () => {
     for (const url of ['/dashboard', '/stories', '/stories/add', '/stories/507f191e810c19729de860ea']) {
         const response = await request(url, { headers: { 'x-test-user': 'guest' } })

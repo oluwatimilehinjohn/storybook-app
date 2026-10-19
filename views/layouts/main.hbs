@@ -5,10 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#214e40">
     <title>{{#if pageTitle}}{{pageTitle}} · {{/if}}Storybooks</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="/css/style.css">
-    <script src="/js/app.js" defer></script>
+    {{> _styles}}
+    <script src="{{assets.app}}" data-editor-src="{{assets.editor}}" defer></script>
 </head>
 <body>
     <a class="skip-link" href="#main-content">Skip to content</a>

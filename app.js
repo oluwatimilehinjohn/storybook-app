@@ -8,7 +8,6 @@ try {
     process.exit(1)
 }
 
-const path = require('path')
 const express = require('express')
 const mongoose = require('mongoose')
 const morgan = require('morgan')
@@ -18,11 +17,13 @@ const passport = require('passport')
 const session = require('express-session')
 const MongoStore = require('connect-mongo')(session)
 const connectDB = require('./config/db')
+const { configurePresentation } = require('./config/presentation')
 
 //passport config
 require('./config/passport')(passport)
 
 const app = express()
+configurePresentation(app)
 // Render terminates HTTPS at its reverse proxy.
 if (configuration.isProduction) app.set('trust proxy', 1)
 
@@ -76,9 +77,6 @@ app.use(function (req, res, next){
     res.locals.activeNav = req.path === '/dashboard' ? 'dashboard' : req.path.startsWith('/stories') && !req.path.startsWith('/stories/add') && !req.path.startsWith('/stories/edit') ? 'stories' : ''
     next()
 })
-//static folder
-app.use(express.static(path.join(__dirname, 'public')))
-
 //routes
 app.use('/', require('./routes/index'))
 app.use('/auth', require('./routes/auth'))

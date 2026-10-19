@@ -44,7 +44,10 @@ async function main() {
     try {
         await send('Page.enable')
         await send('Runtime.enable')
-        fs.mkdirSync('.preview', { recursive: true })
+        await send('Network.enable')
+        const blockedCDNs = ['*cdnjs.cloudflare.com*', '*cdn.ckeditor.com*']
+        await send('Network.setBlockedURLs', { urls: blockedCDNs })
+        fs.mkdirSync('.preview/verified', { recursive: true })
         const pages = [
             ['login', '/'], ['dashboard', '/dashboard'], ['discover', '/stories'],
             ['add', '/stories/add'], ['edit', '/stories/edit/507f191e810c19729de860eb'],
@@ -61,10 +64,29 @@ async function main() {
                 assert.ok(layout.scrollWidth <= width + 1, name + ' overflows at ' + width + ': ' + JSON.stringify(layout))
                 assert.ok(layout.heading, name + ' missing heading')
                 assert.equal(layout.invalidLinks, 0, name + ' placeholder links')
+                assert.equal(await evaluate(`getComputedStyle(document.body).backgroundColor`), 'rgb(248, 247, 243)', name + ' paper background')
+                assert.equal(await evaluate(`document.querySelector('link[href*="/css/style.css?v="]') !== null`), true, name + ' versioned style')
+                assert.equal(await evaluate(`document.fonts.check('900 16px "Font Awesome 6 Free"')`), true, name + ' local icon font')
                 if ([1440, 390].includes(width)) {
                     const metrics = await send('Page.getLayoutMetrics')
                     const capture = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width, height: Math.min(2400, metrics.cssContentSize.height), scale: 1 } })
-                    fs.writeFileSync('.preview/' + name + '-' + width + '.png', Buffer.from(capture.data, 'base64'))
+                    fs.writeFileSync('.preview/verified/' + name + '-' + width + '.png', Buffer.from(capture.data, 'base64'))
+                    const filename = name + '-' + width + '.png'
+                    if (fs.existsSync('.preview/' + filename)) {
+                        const comparison = await evaluate(`(async () => {
+                            const reference = await createImageBitmap(await (await fetch('/test/reference/${filename}')).blob());
+                            const actual = await createImageBitmap(await (await fetch('data:image/png;base64,${capture.data}')).blob());
+                            if (reference.width !== actual.width || reference.height !== actual.height) return { sizeMatch: false, reference: [reference.width, reference.height], actual: [actual.width, actual.height] };
+                            const canvas = document.createElement('canvas'); canvas.width = actual.width; canvas.height = actual.height;
+                            const ctx = canvas.getContext('2d'); ctx.drawImage(reference, 0, 0); const before = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                            ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.drawImage(actual, 0, 0); const after = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                            let changed = 0; for (let i = 0; i < before.length; i += 4) if (Math.max(Math.abs(before[i] - after[i]), Math.abs(before[i+1] - after[i+1]), Math.abs(before[i+2] - after[i+2])) > 40) changed++;
+                            return { sizeMatch: true, changedPercent: 100 * changed / (actual.width * actual.height) };
+                        })()`)
+                        console.log('Visual comparison ' + filename + ': ' + JSON.stringify(comparison))
+                        assert.equal(comparison.sizeMatch, true, filename + ' dimensions match the preview')
+                        assert.ok(comparison.changedPercent < 1, filename + ' differs from the preview by more than 1%')
+                    }
                 }
             }
             console.log('PASS: 10 pages at ' + width + 'px, no horizontal overflow')
@@ -113,17 +135,17 @@ async function main() {
         console.log('PASS: rich editor, inline validation, visibility help, save, success notice, confirmed deletion')
         await send('Network.enable')
         await send('Network.setCacheDisabled', { cacheDisabled: true })
-        await send('Network.setBlockedURLs', { urls: ['*cdn.ckeditor.com*'] })
+        await send('Network.setBlockedURLs', { urls: [...blockedCDNs, '*/vendor/ckeditor/*'] })
         await visit('/stories/add')
         assert.equal(await evaluate(`document.querySelector('#body').offsetHeight > 0`), true)
         assert.match(await evaluate(`document.querySelector('#body-help').textContent`), /could not load/)
         await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
         assert.equal(await evaluate(`getComputedStyle(document.querySelector('.button')).transitionDuration`), '0s')
-        await send('Network.setBlockedURLs', { urls: [] })
+        await send('Network.setBlockedURLs', { urls: blockedCDNs })
         await send('Emulation.setEmulatedMedia', { features: [] })
-        console.log('PASS: usable editor fallback when CDN fails; reduced-motion preference respected')
+        console.log('PASS: usable editor fallback when its file is unavailable; reduced-motion preference respected')
         assert.deepEqual(errors, [], 'No uncaught browser errors')
-        console.log('PASS: no uncaught browser errors. Screenshots saved to .preview/')
+        console.log('PASS: no uncaught browser errors with external CDNs blocked. Screenshots saved to .preview/verified/; original previews preserved.')
     } finally {
         socket.close()
     }

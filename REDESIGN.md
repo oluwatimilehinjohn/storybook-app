@@ -27,7 +27,7 @@ Desktop navigation exposes My stories and Discover, alongside Write a story and 
 | `/stories/edit/:id` | Preserved title/body/visibility, shared writing controls, errors that retain submitted content |
 | Error views | Clear 404/500 explanation, working recovery links, appropriate HTTP statuses |
 
-Shared improvements include a skip link, visible keyboard focus, native account disclosure and confirmation dialog, focus restoration after dismissal, status announcements, reduced-motion support, and touch-sized controls. Editor assets load only on writing pages. If the editor CDN fails, the original textarea remains usable and explains the fallback.
+Shared improvements include a skip link, visible keyboard focus, native account disclosure and confirmation dialog, focus restoration after dismissal, status announcements, reduced-motion support, and touch-sized controls. Editor assets load only on writing pages. If the editor file fails to load, the original textarea remains usable and explains the fallback.
 
 ## Functional fixes
 
@@ -40,15 +40,14 @@ Shared improvements include a skip link, visible keyboard focus, native account 
 
 ## Verification
 
-- `npm test`: 10 passing integration/template/authentication regression tests using isolated in-memory model fixtures. Covers all key templates, authentication gates, visibility, ownership, create/edit/delete, form recovery, and Google account lookup.
-- JavaScript syntax checks: all 14 application and test files passed.
+- `npm test`: 20 passing tests covering templates, authentication gates, visibility, ownership, create/edit/delete, form recovery, Google account lookup, configuration, startup failures, and shared asset delivery. Integration tests use isolated in-memory model fixtures.
 - Chrome inspection: ten page states at 1440, 768, 390, and 320 pixels, without horizontal overflow.
 - Browser interactions: search, visibility filtering, no-results feedback, confirmation focus/Escape, account menu, rich editor, validation, privacy explanation, unsaved writing warning, saving, success notice, and confirmed deletion passed.
-- Editor CDN failure and reduced-motion behavior passed. No uncaught browser exceptions were observed.
+- All 20 original desktop/mobile screenshots were compared with the rendered pages. Browser checks passed with external asset CDNs blocked, including editor-file failure and reduced-motion behavior. No uncaught browser exceptions were observed.
 - Actual application startup and MongoDB connectivity succeeded with network access. Guest landing, protected-route redirects, and Google authorization redirect were checked without signing in or modifying live stories.
 - No build, lint, or type-check commands existed in the original project. No checks were disabled or bypassed. `npm test` was added using Node's built-in runner.
 
-Browser screenshots are stored in ignored `.preview/`, including `login-1440.png`, `dashboard-390.png`, and `add-1440.png`. Test fixtures live exclusively under `tests/`; the production application does not import them.
+Original browser references are stored in ignored `.preview/`, including `login-1440.png`, `dashboard-390.png`, and `add-1440.png`. New captures are saved separately to `.preview/verified/`. The ten reference states are login, dashboard, discover, add, edit, read, author, empty, 404, and 500, each at desktop and mobile widths. Test fixtures and the reference-image endpoint live exclusively under `tests/`; the production application does not import them.
 
 To repeat browser checks with Node 22+, run `node tests/support/app.js`, launch an isolated headless Chrome with remote debugging on port 9222, and run `node tests/browser-check.js`. The test server binds only to `127.0.0.1:4173` and does not connect to MongoDB or Google. `CHECK_WIDTHS=390` limits screenshots to that viewport.
 
@@ -56,7 +55,8 @@ To repeat browser checks with Node 22+, run `node tests/support/app.js`, launch 
 
 - Full Google consent/callback and authenticated live-database writes were not exercised; they require a real sign-in. CRUD verification used the actual route handlers with test-only model fixtures.
 - Database/OAuth credentials and the session secret now come from environment variables. Local configuration is ignored by Git, with a safe example file tracked instead. Previously committed credentials still need rotation at their providers; older published history has not been rewritten. Configure the required environment variables on the hosting provider before deployment. Existing story HTML is still rendered as rich HTML; server-side sanitization remains a separate security-hardening task.
-- The existing CDN-hosted Materialize, Font Awesome, and CKEditor versions were retained. No dependency or framework migration was performed.
+- The existing Materialize, Font Awesome, and CKEditor versions are now bundled with their licenses under `public/vendor/`. Shared layout partials use content-versioned local asset URLs, and static serving precedes session initialization. No dependency or framework migration was performed.
+- The configured public Render domain returned the original login page when inspected. Local browser verification does not establish a successful production deployment; the existing Render service must deploy the updated commit successfully. See the publishing checklist in `README.md`.
 - Browser and keyboard checks are practical accessibility verification, not a full screen-reader or WCAG conformance audit.
 
 Editor API reference: [CKEditor installation documentation](https://ckeditor.com/docs/ckeditor5/latest/updating/nim-migration/migration-to-new-installation-methods.html).

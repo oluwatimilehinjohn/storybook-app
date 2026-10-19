@@ -10,7 +10,7 @@ function deploymentCopy(t) {
     fs.mkdirSync(path.join(root, '.preview'), { recursive: true })
     const directory = fs.mkdtempSync(path.join(root, '.preview', 'startup-'))
     fs.copyFileSync(path.join(root, 'app.js'), path.join(directory, 'app.js'))
-    for (const name of ['config', 'routes', 'models', 'middleware', 'helpers']) {
+    for (const name of ['config', 'routes', 'models', 'middleware', 'helpers', 'public', 'views']) {
         fs.cpSync(path.join(root, name), path.join(directory, name), {
             recursive: true,
             filter: source => !source.endsWith('.env')

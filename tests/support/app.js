@@ -6,6 +6,7 @@ const methodOverride = require('method-override')
 const Story = require('../../models/Story')
 const User = require('../../models/User')
 const helpers = require('../../helpers/hbs')
+const { configurePresentation } = require('../../config/presentation')
 
 const owner = { _id: '507f1f77bcf86cd799439011', id: '507f1f77bcf86cd799439011', firstName: 'Alex', displayName: 'Alex Morgan' }
 const other = { _id: '507f1f77bcf86cd799439012', id: '507f1f77bcf86cd799439012', firstName: 'Jamie', displayName: 'Jamie Park' }
@@ -59,12 +60,12 @@ User.findById = id => ({ lean: async () => [owner, other].find(user => user._id 
 
 const createApp = () => {
     const app = express()
+    configurePresentation(app)
     app.engine('.hbs', exphbs.engine({ helpers, defaultLayout: 'main', extname: '.hbs' }))
     app.set('view engine', '.hbs')
     app.set('views', path.resolve(__dirname, '../../views'))
     app.use(express.urlencoded({ extended: false }))
     app.use(methodOverride(req => req.body?._method))
-    app.use(express.static(path.resolve(__dirname, '../../public')))
     const session = {}
     app.use((req, res, next) => {
         req.user = req.headers['x-test-user'] === 'guest' || req.path === '/' ? undefined : req.headers['x-test-user'] === 'other' ? other : owner
@@ -76,6 +77,10 @@ const createApp = () => {
     })
     app.get('/test/empty', (req, res) => res.render('dashboard', { name: owner.firstName, stories: [], pageTitle: 'My stories' }))
     app.get('/test/error', (req, res) => res.status(500).render('error/500'))
+    app.get('/test/reference/:name', (req, res) => {
+        if (!/^[a-z0-9-]+\.png$/.test(req.params.name)) return res.sendStatus(404)
+        res.sendFile(path.resolve(__dirname, '../../.preview', req.params.name))
+    })
     app.use('/', require('../../routes/index'))
     app.use('/stories', require('../../routes/stories'))
     app.use((req, res) => res.status(404).render('error/404'))

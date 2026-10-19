@@ -1,6 +1,7 @@
 /* Progressive enhancements: all navigation and form actions still work without JS. */
 (() => {
     'use strict'
+    const editorSource = document.currentScript?.dataset.editorSrc
     const account = document.querySelector('.account-menu')
     document.addEventListener('click', event => {
         if (account && !account.contains(event.target)) account.open = false
@@ -126,7 +127,7 @@
 
     // Keep the existing CKEditor version, loading it only on writing pages.
     const script = document.createElement('script')
-    script.src = 'https://cdn.ckeditor.com/ckeditor5/35.4.0/classic/ckeditor.js'
+    script.src = editorSource
     const editorFallback = () => {
         form.querySelector('#body-help').textContent = 'The formatting tools could not load. You can still write and save in the text field. Existing formatting is shown as HTML.'
     }
@@ -152,5 +153,6 @@
             editorFallback()
         }
     }
-    document.head.appendChild(script)
+    if (editorSource) document.head.appendChild(script)
+    else editorFallback()
 })()
