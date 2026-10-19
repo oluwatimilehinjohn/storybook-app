@@ -13,3 +13,46 @@ Use a long random value for `SESSION_SECRET`. Generate one with `node -e "consol
 Run `npm install`, then `npm run dev` locally or `npm start` in production. Run `npm test` for the regression suite.
 
 Credentials previously committed to Git should be rotated at Google Cloud and your database provider. Removing them from the latest source does not revoke credentials or remove older published Git history. Do not bypass GitHub push protection to publish credentials.
+
+## Render deployment
+
+The startup error listing all five variables means they are absent or blank in the running service. They were previously provided by embedded values or the tracked local configuration file. That secrets file is now deliberately excluded from Git, so Render cannot receive those values from a checkout. The application accepts Render's environment variables directly; a local environment file is optional and cannot override values supplied by the host. Example placeholders are not real configuration.
+
+### Existing Render service
+
+1. Open the existing web service in the Render Dashboard. Under **Settings > Build & Deploy**, use the repository root and set:
+   - **Build Command:** `npm ci --omit=dev`
+   - **Start Command:** `node app.js`
+2. Under **Environment**, set `NODE_ENV=production` and all five variables in the table below. Do not paste values into Git, screenshots, or logs.
+3. Remove an existing `NODE_VERSION=14.17.0` override, or change it to `22`. A Render `NODE_VERSION` environment variable takes precedence over the repository's `.node-version` file. Also remove any `NPM_CONFIG_PRODUCTION=false` or other install overrides that conflict with the intended production install.
+4. Save the environment changes, then **Clear build cache & deploy** once to replace the old Node/Yarn dependency cache. Let Render supply `PORT`; the app binds to `0.0.0.0` on that port.
+
+| Variable | Where to obtain it / what to enter |
+| --- | --- |
+| `MONGO_URI` | Your existing database provider's connection string. In MongoDB Atlas, use **Connect > Drivers**, supply a database user's credentials, and retain the existing database name and options so current users and stories remain accessible. URL-encode special characters in credentials. Permit the Render service's documented outbound IP addresses in Atlas Network Access. |
+| `GOOGLE_CLIENT_ID` | Google Cloud **APIs & Services > Credentials**, from the existing **OAuth 2.0 Client ID** of type **Web application**. |
+| `GOOGLE_CLIENT_SECRET` | The client secret for that same Google OAuth client. Use the rotated secret if the old one was exposed. |
+| `GOOGLE_CALLBACK_URL` | `https://YOUR-RENDER-DOMAIN/auth/google/callback`, replacing the domain with the actual deployed HTTPS hostname (or your configured custom domain). No trailing slash, query, or fragment. |
+| `SESSION_SECRET` | Generate a random value with `node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"`, then paste the result only into Render's Environment setting. The app requires at least 32 characters. Keep the value stable across deployments and instances; rotation signs existing users out. |
+
+The callback path is verified in code: `app.js` mounts `routes/auth.js` at `/auth`, and that router handles `GET /google/callback`. In Google Cloud, add the **exact same complete HTTPS URL** from `GOOGLE_CALLBACK_URL` to that OAuth client's **Authorized redirect URIs**. The scheme, hostname, path, and trailing-slash behavior must match. The login initiation route `/auth/google` is not the callback. Local development can separately register `http://localhost:3000/auth/google/callback`.
+
+The Render Blueprint in `render.yaml` declares the same commands. It prompts for the database/OAuth values and generates a session secret for Blueprint-managed services. Adding the file alone does not change an existing dashboard-managed service, supply credentials, or configure Google Cloud. Apply the instructions above to the existing service; do not create a duplicate service just to use this file.
+
+### Runtime and package manager
+
+This project uses **npm**, with a committed `package-lock.json` (lockfile version 2). There is no Yarn lockfile. Keep the lockfile and use `npm ci` locally for an exact development installation; Render uses `npm ci --omit=dev`. `node_modules` is ignored and supplied by installation instead of committed copies. No separate build/transpile step exists for this Express/Handlebars application. The Render start command stays `node app.js`, which does not require the development-only `cross-env` package.
+
+`.node-version` selects Node **22**, and `package.json` bounds the Node version to `22.x` (npm 10 or 11). Node 22 is an LTS line compatible with every declared Node engine range in the existing lockfile. The tests also require modern built-in Node testing/fetch APIs unavailable in Node 14. No dependency versions were upgraded for this deployment fix. Local verification uses Node 22.14.0; Render selects an available patch within the 22 line. Node 14 is end-of-life and should not be retained merely because older packages install on it.
+
+### Startup and verification
+
+- Missing configuration lists only the missing variable names and setup steps, never their values. Placeholder values, short session secrets, invalid database schemes, callback path mismatches, production HTTP callbacks, and invalid ports fail explicitly.
+- Database startup uses `MONGO_URI`. The app waits for MongoDB before opening the HTTP listener. A connection failure exits nonzero with credential/network troubleshooting guidance and without logging the connection string.
+- Production sessions continue to use MongoDB and `SESSION_SECRET`. Cookies are HTTP-only, Secure in production, and SameSite=Lax. Express trusts the first proxy hop so Render's forwarded HTTPS information permits secure cookies during the Google redirect flow.
+- Run `npm test` for the existing application tests plus configuration and real-entry-point startup tests. The startup tests copy application source without `config.env`, inject test-only environment values, and verify that missing configuration and an unreachable MongoDB fail safely. They do not bypass database/authentication code or connect to production accounts.
+- After deployment, verify the Render logs show `MongoDB connected` followed by `Server listening on port ...`, visit the landing page, and complete a real Google sign-in. Check persistence across requests, existing stories, and logout. These production checks require your configured service and Google account; local tests do not establish a successful Render deployment.
+
+The existing locked dependencies were retained to avoid unrelated breaking changes. During verification, the production install reported 34 npm audit findings (5 low, 16 moderate, 10 high, 3 critical). These require a separately tested dependency/security update; this configuration fix does not resolve them. Previously exposed credentials also still require provider-side rotation.
+
+References: [Render Node version precedence](https://render.com/docs/node-version), [Render environment settings](https://render.com/docs/configure-environment-variables), [Node release support](https://nodejs.org/en/about/previous-releases), and [Express secure session cookies behind a proxy](https://expressjs.com/en/resources/middleware/session/).

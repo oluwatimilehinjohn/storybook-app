@@ -1,7 +1,16 @@
+const { loadEnvironment } = require('./config/environment')
+// Validate before initializing authentication, database connections, or HTTP.
+let configuration
+try {
+    configuration = loadEnvironment()
+} catch (error) {
+    console.error(`Startup configuration error:\n${error.message}`)
+    process.exit(1)
+}
+
 const path = require('path')
 const express = require('express')
 const mongoose = require('mongoose')
-const dotenv = require('dotenv')
 const morgan = require('morgan')
 const exphbs = require('express-handlebars')
 const methodOverride = require('method-override')
@@ -10,23 +19,12 @@ const session = require('express-session')
 const MongoStore = require('connect-mongo')(session)
 const connectDB = require('./config/db')
 
-
-
-//load config
-dotenv.config({ path: './config/config.env' })
-
-const requiredEnvironment = ['MONGO_URI', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_CALLBACK_URL', 'SESSION_SECRET']
-const missingEnvironment = requiredEnvironment.filter(name => !process.env[name])
-if (missingEnvironment.length) {
-    throw new Error(`Missing configuration: ${missingEnvironment.join(', ')}. Set hosting environment variables or copy config/config.env.example to config/config.env.`)
-}
-
 //passport config
 require('./config/passport')(passport)
 
-connectDB()
-
 const app = express()
+// Render terminates HTTPS at its reverse proxy.
+if (configuration.isProduction) app.set('trust proxy', 1)
 
 //body parser
 app.use(express.urlencoded({ extended: false }))
@@ -60,6 +58,11 @@ app.use(session({
     secret: process.env.SESSION_SECRET,
     saveUninitialized: false,
     resave: false,
+    cookie: {
+        httpOnly: true,
+        secure: configuration.isProduction,
+        sameSite: 'lax'
+    },
     store: new MongoStore({ mongooseConnection: mongoose.connection })
 }))
 
@@ -88,7 +91,18 @@ app.use((err, req, res, next) => {
     res.status(500).render('error/500', { pageTitle: 'Something went wrong' })
 })
 
-const PORT = process.env.PORT
-
-app.listen(
-    PORT, console.log(`server running in ${process.env.NODE_ENV} mode on port ${PORT}`))
+// Only accept requests once the real database connection is established.
+connectDB()
+    .then(() => {
+        const server = app.listen(configuration.port, '0.0.0.0', () => {
+            console.log(`Server listening on port ${configuration.port}`)
+        })
+        server.on('error', () => {
+            console.error('HTTP startup failed. Check PORT and whether another process is using it.')
+            process.exit(1)
+        })
+    })
+    .catch(error => {
+        console.error(error.message)
+        process.exit(1)
+    })
