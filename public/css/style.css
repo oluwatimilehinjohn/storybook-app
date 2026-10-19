@@ -1653,6 +1653,63 @@ input::placeholder,textarea::placeholder {
         padding:24px
     }
 }
+/* Public story timeline. Existing author collections retain their card layout. */
+.feed-layout { display:grid; grid-template-columns:minmax(0,740px) minmax(240px,1fr); gap:40px; align-items:start }
+.feed-column { min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden }
+.feed-heading { display:flex; align-items:start; justify-content:space-between; gap:12px; padding:28px 28px 22px }
+.feed-heading h1 { font-size:2.6rem; margin:9px 0 12px }
+.feed-heading p:not(.eyebrow) { color:var(--muted); font-size:.88rem }
+.feed-heading .icon-button { flex-shrink:0 }
+.feed-search { display:flex; gap:10px; padding:0 28px 22px }
+.feed-search .search-field { width:auto; flex:1; min-width:0 }
+.feed-search-summary { display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:0 28px 20px; font-size:.85rem; overflow-wrap:anywhere }
+.feed-compose { display:flex; align-items:center; gap:14px; padding:22px 28px; background:var(--sage); border-block:1px solid var(--line); font-size:.95rem }
+.feed-compose>span:nth-child(2) { flex:1 }
+.feed-compose small { display:block; color:var(--muted); font-size:.76rem; margin-top:3px }
+.feed-compose:hover { background:#e2ebdc }
+.feed-story { padding:26px 28px; border-bottom:1px solid var(--line); overflow-wrap:anywhere }
+.feed-story-header { display:flex; gap:12px; align-items:center; margin-bottom:18px }
+.feed-author { display:flex; flex-direction:column; min-width:0; flex:1 }
+.feed-author>a,.feed-author>span:first-child { color:var(--ink); font-size:.9rem; font-weight:600 }
+.feed-author>a:hover { text-decoration:underline }
+.feed-author>span:last-child { color:var(--muted); font-size:.75rem; font-weight:400; margin-top:2px }
+.feed-story-header>.icon-button { flex-shrink:0 }
+.feed-story h2 { font-size:1.7rem; line-height:1.3; margin-bottom:12px }
+.feed-story h2 a { color:var(--ink) }
+.feed-story h2 a:hover { color:var(--green); text-decoration:underline; text-underline-offset:4px }
+.feed-excerpt { font-size:.95rem; line-height:1.8; color:#4e584f }
+.feed-story-actions { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-top:20px }
+.feed-story-actions>a { min-height:44px }
+.feed-share { display:inline-flex; align-items:center; gap:8px; min-height:44px; border:0; border-radius:6px; background:transparent; color:var(--muted); font-size:.8rem; padding:10px 12px }
+.feed-share:hover,.feed-share:focus { background:var(--sage); color:var(--green) }
+.feed-pagination { padding:24px; text-align:center; color:var(--muted); font-size:.85rem }
+.feed-pagination .text-link { margin-top:8px }
+.feed-pagination [aria-disabled=true] { opacity:.65; cursor:wait }
+.feed-status { padding:0 24px 18px; color:var(--green); font-size:.85rem; text-align:center }
+.feed-status:empty { padding:0 }
+.feed-stream>.empty-state { border:0; border-radius:0 }
+.feed-sidebar { position:sticky; top:24px }
+.feed-note { padding:28px; border-radius:var(--radius); background:var(--sage); border:1px solid var(--line) }
+.feed-note h2 { font-size:1.85rem; margin:18px 0 }
+.feed-note p { color:var(--muted); font-size:.88rem; margin-bottom:22px }
+.feed-privacy { display:flex; align-items:start; gap:12px; padding:24px 12px; color:var(--muted); font-size:.8rem }
+.feed-privacy>i { margin-top:6px }
+.feed-privacy a { text-decoration:underline }
+@media(max-width:1000px) { .feed-layout { grid-template-columns:minmax(0,1fr); max-width:740px; margin:auto } .feed-sidebar { display:none } }
+@media(max-width:460px) {
+    .feed-heading { padding:22px 18px 18px }
+    .feed-heading .eyebrow { font-size:.58rem; letter-spacing:1.2px }
+    .feed-heading h1 { font-size:2.3rem }
+    .feed-heading p:not(.eyebrow) { font-size:.82rem }
+    .feed-search { padding:0 18px 18px; gap:8px }
+    .feed-search .button { padding:10px 12px; font-size:.8rem }
+    .feed-search .search-field { padding:0 10px; gap:8px }
+    .feed-search-summary { padding:0 18px 18px }
+    .feed-compose { padding:18px; font-size:.85rem; gap:10px }
+    .feed-story { padding:22px 18px }
+    .feed-story h2 { font-size:1.5rem }
+    .feed-excerpt { font-size:.9rem }
+}
 @media(prefers-reduced-motion:reduce) {
     *,*::before,*::after {
         scroll-behavior:auto!important;

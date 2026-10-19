@@ -22,12 +22,19 @@ const reset = () => {
     ]
 }
 reset()
-const matches = (record, filter) => Object.entries(filter).every(([key, value]) => String(record[key]) === String(value))
+const matches = (record, filter) => Object.entries(filter).every(([key, value]) => {
+    if (key === '$or') return value.some(part => matches(record, part))
+    if (value instanceof RegExp) return value.test(record[key])
+    if (value instanceof Date) return +record[key] === +value
+    if (value && typeof value === 'object' && '$lt' in value) return record[key] < value.$lt
+    return String(record[key]) === String(value)
+})
 const query = (value) => {
     let populated = false
     const result = {
         populate() { populated = true; return result },
-        sort() { if (Array.isArray(value)) value.sort((a, b) => b.createdAt - a.createdAt); return result },
+        sort() { if (Array.isArray(value)) value.sort((a, b) => b.createdAt - a.createdAt || b._id.localeCompare(a._id)); return result },
+        limit(count) { value = value.slice(0, count); return result },
         async lean() {
             const copy = item => item ? { ...item, user: populated ? (item.user === owner._id ? owner : other) : item.user } : null
             return Array.isArray(value) ? value.map(copy) : copy(value)
@@ -77,6 +84,11 @@ const createApp = () => {
     })
     app.get('/test/empty', (req, res) => res.render('dashboard', { name: owner.firstName, stories: [], pageTitle: 'My stories' }))
     app.get('/test/error', (req, res) => res.status(500).render('error/500'))
+    app.get('/test/feed', (req, res) => {
+        reset()
+        for (let i = 0; i < 48; i++) records.push({ _id: (1000 + i).toString(16).padStart(24, '0'), title: 'Community moment ' + i, body: '<p>A small moment from the community, with a fresh perspective and something worth remembering.</p>', status: 'public', user: other._id, createdAt: new Date('2026-09-01') })
+        res.redirect('/stories')
+    })
     app.get('/test/reference/:name', (req, res) => {
         if (!/^[a-z0-9-]+\.png$/.test(req.params.name)) return res.sendStatus(404)
         res.sendFile(path.resolve(__dirname, '../../.preview', req.params.name))

@@ -77,6 +77,64 @@ test('authentication still protects every story operation', async () => {
     assert.equal((await submit('/stories', { title: 'Guest', body: 'Denied', status: 'public' }, 'guest')).status, 302)
     assert.equal(fixture.records().length, 4)
 })
+
+test('For you pages every public story in stable order without repeats, including tied dates', async () => {
+    for (let i = 0; i < 27; i++) fixture.records().push({ _id: (100 + i).toString(16).padStart(24, '0'), title: 'Feed story ' + i, body: '<p>Public words</p>', status: 'public', user: fixture.other.id, createdAt: new Date('2026-09-01') })
+    let url = '/stories'
+    const seen = []
+    let pages = 0
+    while (url) {
+        const response = await request(url)
+        assert.equal(response.status, 200)
+        const html = await response.text()
+        const ids = [...html.matchAll(/data-feed-story="([a-f0-9]+)"/g)].map(match => match[1])
+        assert.ok(ids.length <= 12)
+        seen.push(...ids)
+        const next = html.match(/href="([^"]+)" data-feed-next/)
+        url = next ? next[1].replace(/&amp;/g, '&').replace(/&#x3D;/g, '=') : null
+        assert.ok(++pages < 5, 'pagination terminates')
+    }
+    const expected = fixture.records().filter(story => story.status === 'public').sort((a, b) => b.createdAt - a.createdAt || b._id.localeCompare(a._id)).map(story => story._id)
+    assert.deepEqual(seen, expected)
+    assert.equal(new Set(seen).size, 30)
+})
+
+test('feed search is server-rendered, case-insensitive, literal, and excludes private stories', async () => {
+    fixture.records().push({ _id: '000000000000000000000001', title: 'A [quiet] moment', body: '<p>Words</p>', status: 'public', user: fixture.owner.id, createdAt: new Date() })
+    const html = await (await request('/stories?q=%5BQUIET%5D')).text()
+    assert.match(html, /A \[quiet\] moment/)
+    assert.doesNotMatch(html, /The quiet magic/)
+    const noResults = await (await request('/stories?q=future')).text()
+    assert.match(noResults, /No stories found/)
+    assert.doesNotMatch(noResults, /A letter to my future self/)
+    for (const query of ['?before=bad', '?before=2026-02-31T00%3A00%3A00.000Z_000000000000000000000001', '?q[x]=bad', '?q=' + 'a'.repeat(101)]) {
+        assert.equal((await request('/stories' + query)).status, 400)
+    }
+})
+
+test('feed pagination carries search and does not repeat stories when new ones arrive', async () => {
+    for (let i = 0; i < 15; i++) fixture.records().push({ _id: (100 + i).toString(16).padStart(24, '0'), title: 'Matching story ' + i, body: 'Words', status: 'public', user: fixture.owner.id, createdAt: new Date('2026-09-01') })
+    const html = await (await request('/stories?q=Matching')).text()
+    const url = html.match(/href="([^"]+)" data-feed-next/)[1].replace(/&amp;/g, '&').replace(/&#x3D;/g, '=')
+    assert.equal(new URL(url, base).searchParams.get('q'), 'Matching')
+    fixture.records().push({ _id: '000000000000000000000fff', title: 'Matching newest', body: 'Words', status: 'public', user: fixture.owner.id, createdAt: new Date('2026-10-20') })
+    const continuation = await (await request(url)).text()
+    assert.equal([...continuation.matchAll(/data-feed-story=/g)].length, 3)
+    assert.doesNotMatch(continuation, /Matching newest|data-feed-next/)
+})
+
+test('empty and failed feeds offer recovery without exposing database errors', async () => {
+    fixture.records().splice(0)
+    assert.match(await (await request('/stories')).text(), /Be the first to share/)
+    const Story = require('../models/Story')
+    const find = Story.find
+    Story.find = () => { throw new Error('Simulated database outage') }
+    try {
+        const response = await request('/stories')
+        assert.equal(response.status, 500)
+        assert.doesNotMatch(await response.text(), /Simulated database outage/)
+    } finally { Story.find = find }
+})
 test('private stories are readable only by their owner and excluded from discovery', async () => {
     const url = '/stories/507f191e810c19729de860eb'
     assert.equal((await request(url)).status, 200)

@@ -2,6 +2,14 @@
 
 Write personal stories, keep them private, or share them with other signed-in readers.
 
+## For you feed
+
+Open **Discover** (`/stories`) for a single-column feed of all public stories, newest first. Each post shows the author, date, reading time, a longer preview, and a link to read the complete story. Share copies a story link when clipboard access is supported. Shared links still require sign-in.
+
+Title search runs on the server across public stories. The feed fetches 12 stories at a time using a date/ID cursor, so new posts do not shift subsequent pages or repeat earlier results. Scrolling loads two additional batches automatically, then a **More stories** link keeps browsing deliberate and the footer reachable. Search and pagination also work without JavaScript; failed requests preserve already loaded stories and allow retry.
+
+Private stories remain in **My stories** and are excluded from every feed query. The feed uses chronological ordering, without personalized ranking or engagement tracking. Existing author collections, reading URLs, editing, authentication, and database records are unchanged. No dependency installation or database migration is required for this feature.
+
 ## Configuration
 
 Copy `config/config.env.example` to `config/config.env`, then supply your own values. The local configuration is ignored by Git. Existing local credentials have been preserved during the migration to environment variables.

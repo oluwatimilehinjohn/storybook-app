@@ -72,7 +72,8 @@ async function main() {
                     const capture = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width, height: Math.min(2400, metrics.cssContentSize.height), scale: 1 } })
                     fs.writeFileSync('.preview/verified/' + name + '-' + width + '.png', Buffer.from(capture.data, 'base64'))
                     const filename = name + '-' + width + '.png'
-                    if (fs.existsSync('.preview/' + filename)) {
+                    // Discover intentionally becomes the For you feed; retain the original grid reference.
+                    if (name !== 'discover' && fs.existsSync('.preview/' + filename)) {
                         const comparison = await evaluate(`(async () => {
                             const reference = await createImageBitmap(await (await fetch('/test/reference/${filename}')).blob());
                             const actual = await createImageBitmap(await (await fetch('data:image/png;base64,${capture.data}')).blob());
@@ -144,6 +145,55 @@ async function main() {
         await send('Network.setBlockedURLs', { urls: blockedCDNs })
         await send('Emulation.setEmulatedMedia', { features: [] })
         console.log('PASS: usable editor fallback when its file is unavailable; reduced-motion preference respected')
+
+        await visit('/test/feed')
+        const storyCount = () => evaluate(`document.querySelectorAll('[data-feed-story]').length`)
+        const waitForCount = async count => {
+            for (let i = 0; i < 60; i++) { if (await storyCount() === count) return; await pause(100) }
+            assert.equal(await storyCount(), count)
+        }
+        await waitForCount(12)
+        for (const count of [24, 36]) {
+            await evaluate(`document.querySelector('[data-feed-next]').scrollIntoView()`)
+            await waitForCount(count)
+        }
+        await evaluate(`document.querySelector('[data-feed-next]').scrollIntoView()`)
+        await pause(400)
+        assert.equal(await storyCount(), 36, 'automatic loading pauses so the footer is reachable')
+        await send('Network.setBlockedURLs', { urls: [...blockedCDNs, '*stories?before=*'] })
+        await evaluate(`document.querySelector('[data-feed-next]').click()`)
+        await pause(500)
+        assert.equal(await storyCount(), 36, 'failed request retains existing stories')
+        assert.equal(await evaluate(`document.querySelector('[data-feed-next]').hasAttribute('aria-disabled')`), false)
+        assert.match(await evaluate(`document.querySelector('[data-feed-status]').textContent`), /Check your connection/)
+        await send('Network.setBlockedURLs', { urls: blockedCDNs })
+        await evaluate(`document.querySelector('[data-feed-next]').click()`)
+        await waitForCount(48)
+        assert.equal(await evaluate(`document.activeElement.tagName`), 'H2', 'manual loading moves focus into new content')
+        await evaluate(`document.querySelector('[data-feed-next]').click()`)
+        await waitForCount(51)
+        assert.equal(await evaluate(`new Set([...document.querySelectorAll('[data-feed-story]')].map(el=>el.dataset.feedStory)).size`), 51)
+        assert.equal(await evaluate(`document.querySelector('[data-feed-next]') === null`), true)
+        assert.equal(await evaluate(`document.body.textContent.includes('A letter to my future self')`), false)
+        await evaluate(`Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: async text => { window.copiedStoryLink = text } }); document.querySelector('[data-share-story]').click()`)
+        await pause(100)
+        assert.match(await evaluate(`window.copiedStoryLink`), /^http:\/\/127\.0\.0\.1:4173\/stories\/[a-f0-9]{24}$/)
+        assert.match(await evaluate(`document.querySelector('[data-feed-status]').textContent`), /link copied/)
+        await evaluate(`Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: async () => { throw new Error('Permission denied') } }); document.querySelector('[data-share-story]').click()`)
+        await pause(100)
+        assert.match(await evaluate(`document.querySelector('[data-feed-status]').textContent`), /copy its address/)
+        await evaluate(`document.querySelector('.feed-search input').value='Community moment 47'; document.querySelector('.feed-search').requestSubmit()`)
+        await pause(500)
+        assert.equal(await storyCount(), 1)
+        assert.match(await evaluate(`document.querySelector('[data-feed-story] h2').textContent`), /Community moment 47/)
+        await send('Emulation.setScriptExecutionDisabled', { value: true })
+        await visit('/stories')
+        assert.equal(await storyCount(), 12)
+        const nextPage = await evaluate(`document.querySelector('[data-feed-next]').getAttribute('href')`)
+        await visit(nextPage)
+        assert.equal(await storyCount(), 12, 'pagination works without JavaScript')
+        await send('Emulation.setScriptExecutionDisabled', { value: false })
+        console.log('PASS: feed scroll loading, manual pagination, retry after network failure, sharing, server search, privacy, and no-JavaScript pagination')
         assert.deepEqual(errors, [], 'No uncaught browser errors')
         console.log('PASS: no uncaught browser errors with external CDNs blocked. Screenshots saved to .preview/verified/; original previews preserved.')
     } finally {

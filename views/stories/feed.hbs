@@ -1,0 +1,39 @@
+<script src="{{assets.feed}}" defer></script>
+<div class="feed-layout" data-feed>
+    <section class="feed-column" aria-labelledby="feed-title">
+        <header class="feed-heading">
+            <div><p class="eyebrow">The community, one story at a time</p><h1 id="feed-title">For you<span class="brand-dot">.</span></h1><p>Real lives. Fresh perspectives. All public stories, newest first.</p></div>
+            <a href="/stories" class="icon-button" aria-label="Refresh with the latest stories" title="Latest stories"><i class="fa-solid fa-arrow-rotate-right" aria-hidden="true"></i></a>
+        </header>
+        <form class="feed-search" action="/stories" method="get" role="search">
+            <label class="search-field"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><span class="sr-only">Search public stories by title</span><input type="search" name="q" value="{{search}}" maxlength="100" placeholder="Find your next read"></label>
+            <button class="button button-secondary" type="submit">Search</button>
+        </form>
+        {{#if search}}<div class="feed-search-summary"><p>Stories matching <strong>“{{search}}”</strong></p><a href="/stories" class="text-link">Clear search</a></div>{{/if}}
+        {{#if isContinuation}}<p class="feed-search-summary"><a href="/stories" class="text-link">Back to the latest stories</a></p>{{/if}}
+        <a class="feed-compose" href="/stories/add"><span class="avatar">{{#if user.image}}<img src="{{user.image}}" alt="" referrerpolicy="no-referrer">{{else}}<i class="fa-regular fa-user" aria-hidden="true"></i>{{/if}}</span><span>What’s a moment worth sharing?<small>Write a story of your own</small></span><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></a>
+        {{#if feedError}}
+        <div class="empty-state" role="alert"><h2>Let’s try that again.</h2><p>{{feedError}}</p><a class="button button-primary" href="/stories">Latest stories</a></div>
+        {{else}}
+        <div class="feed-stream" data-feed-items aria-label="Public stories">
+            {{#each stories}}
+            <article class="feed-story" data-feed-story="{{_id}}" aria-labelledby="story-{{_id}}">
+                <header class="feed-story-header">
+                    <span class="avatar">{{#if user.image}}<img src="{{user.image}}" alt="" loading="lazy" referrerpolicy="no-referrer">{{else}}<i class="fa-regular fa-user" aria-hidden="true"></i>{{/if}}</span>
+                    <div class="feed-author">{{#if user}}<a href="/stories/user/{{user._id}}">{{user.displayName}}</a>{{else}}<span>Storybooks member</span>{{/if}}<span><time datetime="{{formatDate createdAt 'YYYY-MM-DDTHH:mm:ssZ'}}">{{formatDate createdAt 'MMM D, YYYY'}}</time> <span aria-hidden="true">·</span> {{readingTime body}} min read</span></div>
+                    {{{editIcon user ../user _id}}}
+                </header>
+                <h2 id="story-{{_id}}" tabindex="-1"><a href="/stories/{{_id}}">{{title}}</a></h2>
+                <p class="feed-excerpt">{{truncate (stripTags body) 560}}</p>
+                <footer class="feed-story-actions"><a href="/stories/{{_id}}" class="text-link" aria-label="Read {{title}}">Read story <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a><button type="button" class="feed-share" data-share-story="/stories/{{_id}}" aria-label="Copy link to {{title}}" hidden><i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> <span>Share</span></button></footer>
+            </article>
+            {{else}}
+            <div class="empty-state"><span class="empty-icon"><i class="fa-solid fa-book-open" aria-hidden="true"></i></span><h2>{{#if search}}No stories found.{{else}}{{#if isContinuation}}You’re all caught up.{{else}}Be the first to share.{{/if}}{{/if}}</h2><p>{{#if search}}Try a different title or explore all public stories.{{else}}{{#if isContinuation}}There are no older public stories to show.{{else}}A memory, a small discovery, a new perspective. Your story could start something.{{/if}}{{/if}}</p><a class="button button-primary" href="{{#if search}}/stories{{else}}{{#if isContinuation}}/stories{{else}}/stories/add{{/if}}{{/if}}">{{#if search}}Explore all stories{{else}}{{#if isContinuation}}Latest stories{{else}}Write a story{{/if}}{{/if}}</a></div>
+            {{/each}}
+        </div>
+        <div class="feed-pagination" data-feed-pagination>{{#if nextUrl}}<a class="button button-secondary" href="{{nextUrl}}" data-feed-next>More stories <i class="fa-solid fa-arrow-down" aria-hidden="true"></i></a>{{else}}{{#if stories}}<p>You’re all caught up.</p><a href="/stories" class="text-link">Check for new stories</a>{{/if}}{{/if}}</div>
+        {{/if}}
+        <p class="feed-status" data-feed-status role="status" aria-live="polite"></p>
+    </section>
+    <aside class="feed-sidebar" aria-label="About your feed"><div class="feed-note"><span class="eyebrow">A little room for discovery</span><h2>There’s a whole world in someone else’s words.</h2><p>Slow down. Find a familiar feeling, or see something in a new way.</p><a href="/stories/add" class="button button-primary"><i class="fa-solid fa-plus" aria-hidden="true"></i> Write a story</a></div><div class="feed-privacy"><i class="fa-solid fa-lock" aria-hidden="true"></i><p>Only public stories appear here. Your private moments stay in <a href="/dashboard">My stories</a>.</p></div></aside>
+</div>

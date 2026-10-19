@@ -20,7 +20,7 @@ Desktop navigation exposes My stories and Discover, alongside Write a story and 
 | --- | --- |
 | `/` | Clear product introduction, Google sign-in action, lightweight CSS journal illustration, explanation of privacy and discovery |
 | `/dashboard` | Writing prompt, story collection, title search, public/private filters, real story links, readable dates, labeled editing/deletion actions |
-| `/stories` | Public story cards with meaningful excerpts, authors, dates, reading time, title search, and useful empty state |
+| `/stories` | For you timeline with public stories, longer previews, author/date/reading time, server title search, copy-link sharing, scroll loading, and accessible pagination |
 | `/stories/user/:userId` | Named author collection, public stories only, empty-author state, navigation back to discovery |
 | `/stories/:id` | Reading layout, correct story date, owner edit action, visibility indicator, author discovery |
 | `/stories/add` | Labeled writing fields, rich editor, word count, visibility explanation, validation, unsaved-change warning, save feedback |
@@ -40,10 +40,11 @@ Shared improvements include a skip link, visible keyboard focus, native account 
 
 ## Verification
 
-- `npm test`: 20 passing tests covering templates, authentication gates, visibility, ownership, create/edit/delete, form recovery, Google account lookup, configuration, startup failures, and shared asset delivery. Integration tests use isolated in-memory model fixtures.
+- `npm test`: 24 passing tests covering templates, authentication gates, visibility, ownership, create/edit/delete, form recovery, Google account lookup, configuration, startup failures, shared asset delivery, feed pagination, literal search, malformed queries, and empty/error states. Integration tests use isolated in-memory model fixtures.
 - Chrome inspection: ten page states at 1440, 768, 390, and 320 pixels, without horizontal overflow.
 - Browser interactions: search, visibility filtering, no-results feedback, confirmation focus/Escape, account menu, rich editor, validation, privacy explanation, unsaved writing warning, saving, success notice, and confirmed deletion passed.
-- All 20 original desktop/mobile screenshots were compared with the rendered pages. Browser checks passed with external asset CDNs blocked, including editor-file failure and reduced-motion behavior. No uncaught browser exceptions were observed.
+- The 18 unchanged desktop/mobile references still match the rendered pages. Discover now intentionally uses the new For you timeline; its desktop/mobile captures are in `.preview/verified/discover-1440.png` and `discover-390.png`, preserving the original grid references. Browser checks passed with external asset CDNs blocked, including editor-file failure and reduced-motion behavior. No uncaught browser exceptions were observed.
+- Feed browser checks cover automatic loading, manual continuation and focus, retry after a network failure, copy-link sharing, server search, private-story exclusion, and pagination without JavaScript. Only public story queries are changed; production routes continue to use real MongoDB and Passport authentication.
 - Actual application startup and MongoDB connectivity succeeded with network access. Guest landing, protected-route redirects, and Google authorization redirect were checked without signing in or modifying live stories.
 - No build, lint, or type-check commands existed in the original project. No checks were disabled or bypassed. `npm test` was added using Node's built-in runner.
 

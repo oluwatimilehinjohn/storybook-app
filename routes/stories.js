@@ -4,6 +4,7 @@ const { ensureAuth } = require('../middleware/auth')
 const { stripTags } = require('../helpers/hbs')
 const Story = require('../models/Story')
 const User = require('../models/User')
+const { PAGE_SIZE, feedOptions, nextFeedUrl } = require('../helpers/feed')
 
 const validStory = ({ title, body, status }) =>
     typeof title === 'string' && title.trim() &&
@@ -38,9 +39,13 @@ router.post('/', ensureAuth, async (req, res) => {
 })
 
 router.get('/', ensureAuth, async (req, res) => {
+    const { search, filter, error } = feedOptions(req.query)
+    if (error) return res.status(400).render('stories/feed', { pageTitle: 'For you', search, feedError: error })
     try {
-        const stories = await Story.find({ status: 'public' }).populate('user').sort({ createdAt: 'desc' }).lean()
-        res.render('stories/index', { stories, pageTitle: 'Discover stories' })
+        const results = await Story.find(filter).populate('user', 'displayName image').sort({ createdAt: -1, _id: -1 }).limit(PAGE_SIZE + 1).lean()
+        const stories = results.slice(0, PAGE_SIZE)
+        const nextUrl = results.length > PAGE_SIZE ? nextFeedUrl(stories[stories.length - 1], search) : null
+        res.render('stories/feed', { stories, nextUrl, search, pageTitle: 'For you', isContinuation: Boolean(req.query.before) })
     } catch (err) {
         console.error(err)
         res.status(500).render('error/500', { pageTitle: 'Something went wrong' })

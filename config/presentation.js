@@ -9,6 +9,7 @@ const files = {
     icons: '/vendor/fontawesome/6.2.1/css/all.min.css',
     styles: '/css/style.css',
     app: '/js/app.js',
+    feed: '/js/feed.js',
     editor: '/vendor/ckeditor/35.4.0/ckeditor.js'
 }
 const assets = Object.fromEntries(Object.entries(files).map(([name, url]) => {
