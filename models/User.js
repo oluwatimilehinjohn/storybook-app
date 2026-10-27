@@ -15,7 +15,8 @@ const UserSchema = new mongoose.Schema({
     },
     lastName: {
         type: String,
-        required: true
+        // Google profiles do not always include a family name.
+        default: ''
     },
     image: {
         type: String,

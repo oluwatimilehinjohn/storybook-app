@@ -6,7 +6,7 @@
   "scripts": {
     "start": "cross-env NODE_ENV=production node app",
     "dev": "cross-env NODE_ENV=development nodemon app",
-    "test": "node --test tests/app.test.js tests/config.test.js tests/startup.test.js"
+    "test": "node --test tests/app.test.js tests/auth.test.js tests/config.test.js tests/startup.test.js"
   },
   "engines": {
     "node": "22.x",

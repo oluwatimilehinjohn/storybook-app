@@ -65,6 +65,10 @@ This project uses **npm**, with a committed `package-lock.json` (lockfile versio
 
 ### Startup and verification
 
+If Google returns to `/auth/google/callback` and the browser shows an internal server error, inspect **Render runtime logs** for that request (not only the build output). New sign-in failures emit a safe `[authentication]` line with a stage and error category. `stage=google` points to the provider/token exchange: confirm the client ID and secret belong to the same OAuth client and the HTTPS callback matches. `stage=account` points to the MongoDB user lookup/create step. `stage=session` points to saving the signed-in session. These categories guide diagnosis; the browser's generic error alone does not establish the cause.
+
+The callback handles optional Google profile names/photos, and an absent family name no longer blocks creating a user. Existing accounts and story ownership remain unchanged; no data migration is needed. Missing Google account IDs still fail authentication. Session failures discard the incomplete login, and the error page offers a fresh sign-in. Do not refresh or share callback URLs containing authorization codes. Start again from the site's sign-in button.
+
 - Missing configuration lists only the missing variable names and setup steps, never their values. Placeholder values, short session secrets, invalid database schemes, callback path mismatches, production HTTP callbacks, and invalid ports fail explicitly.
 - Database startup uses `MONGO_URI`. The app waits for MongoDB before opening the HTTP listener. A connection failure exits nonzero with credential/network troubleshooting guidance and without logging the connection string.
 - Production sessions continue to use MongoDB and `SESSION_SECRET`. Cookies are HTTP-only, Secure in production, and SameSite=Lax. Express trusts the first proxy hop so Render's forwarded HTTPS information permits secure cookies during the Google redirect flow.

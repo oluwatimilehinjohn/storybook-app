@@ -1,5 +1,4 @@
 const GoogleStrategy = require('passport-google-oauth20').Strategy
-const mongoose = require('mongoose')
 const User = require('../models/User')
 
 
@@ -11,26 +10,29 @@ module.exports = function(passport) {
         callbackURL: process.env.GOOGLE_CALLBACK_URL
     },    
     async (accessToken, refreshToken, profile, done) => {
-        const newUser = {
-            googleId: profile.id,
-            displayName: profile.displayName,
-            firstName: profile.name.givenName,
-            lastName: profile.name.familyName,
-            image: profile.photos[0].value
-        }
-
         try {
-            let user = await User.findOne({ googleId: profile.id })
-
-            if (user) {
-                done(null, user)
-            } else {
-                user = await User.create(newUser)
-                done(null, user)
+            if (!profile || typeof profile.id !== 'string' || !profile.id.trim()) {
+                throw new Error('Google profile has no account identifier')
             }
+            let user = await User.findOne({ googleId: profile.id })
+            if (!user) {
+                const text = value => typeof value === 'string' ? value.trim() : ''
+                const givenName = text(profile.name?.givenName)
+                const familyName = text(profile.name?.familyName)
+                const displayName = text(profile.displayName) || [givenName, familyName].filter(Boolean).join(' ') || 'Storybooks member'
+                const newUser = {
+                    googleId: profile.id,
+                    displayName,
+                    firstName: givenName || displayName,
+                    lastName: familyName,
+                    image: text(profile.photos?.[0]?.value)
+                }
+                user = await User.create(newUser)
+            }
+            return done(null, user)
         } catch (err) {
-            console.error(err)
-            done(err)
+            err.authStage = 'account'
+            return done(err)
         }
 
     }))

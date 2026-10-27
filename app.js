@@ -81,6 +81,7 @@ app.use(function (req, res, next){
 app.use('/', require('./routes/index'))
 app.use('/auth', require('./routes/auth'))
 app.use('/stories', require('./routes/stories'))
+app.use('/auth', require('./middleware/auth-error'))
 
 app.use((req, res) => res.status(404).render('error/404', { pageTitle: 'Page not found' }))
 app.use((err, req, res, next) => {
