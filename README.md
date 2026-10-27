@@ -2,6 +2,8 @@
 
 Write personal stories, keep them private, or share them with other signed-in readers.
 
+Production website: **https://writeestoriess.onrender.com/**. This is the canonical address selected for this project. All production Google sign-ins must return to **https://writeestoriess.onrender.com/auth/google/callback** on that same service.
+
 ## For you feed
 
 Open **Discover** (`/stories`) for a single-column feed of all public stories, newest first. Each post shows the author, date, reading time, a longer preview, and a link to read the complete story. Share copies a story link when clipboard access is supported. Shared links still require sign-in.
@@ -14,7 +16,7 @@ Private stories remain in **My stories** and are excluded from every feed query.
 
 Copy `config/config.env.example` to `config/config.env`, then supply your own values. The local configuration is ignored by Git. Existing local credentials have been preserved during the migration to environment variables.
 
-For deployment, set `MONGO_URI`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`, and `SESSION_SECRET` in your hosting provider's environment settings. Set `PORT` when required by your hosting environment. The callback URL must match an authorized redirect URI for your Google OAuth client; preserve the existing deployed callback when migrating configuration.
+For deployment, set `MONGO_URI`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`, and `SESSION_SECRET` in your hosting provider's environment settings. Use `config/config.env.production.example` as the production reference. Set `PORT` when required by your hosting environment. The callback URL must match an authorized redirect URI for your Google OAuth client and use the canonical production address above.
 
 Use a long random value for `SESSION_SECRET`. Generate one with `node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"` and store it in your environment settings.
 
@@ -28,7 +30,7 @@ The startup error listing all five variables means they are absent or blank in t
 
 ### Existing Render service
 
-1. Open the existing web service in the Render Dashboard. Under **Settings > Build & Deploy**, use the repository root and set:
+1. Open the existing web service whose public URL is **https://writeestoriess.onrender.com**. Confirm its connected repository is `oluwatimilehinjohn/storybook-app`, branch `main`. Updating another service with a similar name does not update this hostname. Under **Settings > Build & Deploy**, use the repository root and set:
    - **Build Command:** `npm ci --omit=dev`
    - **Start Command:** `node app.js`
 2. Under **Environment**, set `NODE_ENV=production` and all five variables in the table below. Do not paste values into Git, screenshots, or logs.
@@ -40,12 +42,12 @@ The startup error listing all five variables means they are absent or blank in t
 | `MONGO_URI` | Your existing database provider's connection string. In MongoDB Atlas, use **Connect > Drivers**, supply a database user's credentials, and retain the existing database name and options so current users and stories remain accessible. URL-encode special characters in credentials. Permit the Render service's documented outbound IP addresses in Atlas Network Access. |
 | `GOOGLE_CLIENT_ID` | Google Cloud **APIs & Services > Credentials**, from the existing **OAuth 2.0 Client ID** of type **Web application**. |
 | `GOOGLE_CLIENT_SECRET` | The client secret for that same Google OAuth client. Use the rotated secret if the old one was exposed. |
-| `GOOGLE_CALLBACK_URL` | `https://YOUR-RENDER-DOMAIN/auth/google/callback`, replacing the domain with the actual deployed HTTPS hostname (or your configured custom domain). No trailing slash, query, or fragment. |
+| `GOOGLE_CALLBACK_URL` | `https://writeestoriess.onrender.com/auth/google/callback`. Paste the URL alone, with no quotes, spaces, or line breaks. No trailing slash, query, or fragment. |
 | `SESSION_SECRET` | Generate a random value with `node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"`, then paste the result only into Render's Environment setting. The app requires at least 32 characters. Keep the value stable across deployments and instances; rotation signs existing users out. |
 
 The callback path is verified in code: `app.js` mounts `routes/auth.js` at `/auth`, and that router handles `GET /google/callback`. In Google Cloud, add the **exact same complete HTTPS URL** from `GOOGLE_CALLBACK_URL` to that OAuth client's **Authorized redirect URIs**. The scheme, hostname, path, and trailing-slash behavior must match. The login initiation route `/auth/google` is not the callback. Local development can separately register `http://localhost:3000/auth/google/callback`.
 
-The Render Blueprint in `render.yaml` declares the same commands. It prompts for the database/OAuth values and generates a session secret for Blueprint-managed services. Adding the file alone does not change an existing dashboard-managed service, supply credentials, or configure Google Cloud. Apply the instructions above to the existing service; do not create a duplicate service just to use this file.
+The Render Blueprint in `render.yaml` declares the same commands and the canonical HTTPS callback. It prompts for the database and Google client credentials and generates a session secret for Blueprint-managed services. Adding the file alone does not change an existing dashboard-managed service, move a hostname between services, supply credentials, or configure Google Cloud. Apply the instructions above to the existing canonical service; do not create a duplicate service just to use this file.
 
 ### Publishing the preview designs
 

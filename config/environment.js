@@ -47,6 +47,9 @@ function loadEnvironment({ env = process.env, envFile = path.join(__dirname, 'co
     if (isProduction && callback.protocol !== 'https:') {
         throw new Error('GOOGLE_CALLBACK_URL must use HTTPS in production. Update it in Render > Environment and use the identical authorized redirect URI in Google Cloud.')
     }
+    // Use exactly the URL we validated. Dashboard paste artifacts (such as a
+    // leading newline) must not be passed through to Google's redirect_uri.
+    env.GOOGLE_CALLBACK_URL = callback.href
 
     const port = env.PORT === undefined ? 3000 : Number(env.PORT)
     if (!Number.isInteger(port) || port < 1 || port > 65535) {

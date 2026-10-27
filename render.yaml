@@ -16,6 +16,6 @@ services:
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: GOOGLE_CALLBACK_URL
-        sync: false
+        value: https://writeestoriess.onrender.com/auth/google/callback
       - key: SESSION_SECRET
         generateValue: true

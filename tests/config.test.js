@@ -91,3 +91,14 @@ test('local development has a default port and Render enforces HTTPS even withou
     env.GOOGLE_CALLBACK_URL = 'http://example.com/auth/google/callback'
     assert.throws(() => loadEnvironment({ env, envFile }), /HTTPS/)
 })
+
+test('callback paste whitespace is normalized before Passport receives the canonical production URL', t => {
+    const envFile = path.join(temporaryDirectory(t), 'absent.env')
+    const callback = 'https://writeestoriess.onrender.com/auth/google/callback'
+    for (const value of [callback, '\n' + callback, '  ' + callback + '\r\n']) {
+        const env = { ...validEnvironment(), GOOGLE_CALLBACK_URL: value }
+        loadEnvironment({ env, envFile })
+        assert.equal(env.GOOGLE_CALLBACK_URL, callback)
+    }
+    assert.throws(() => loadEnvironment({ env: { ...validEnvironment(), GOOGLE_CALLBACK_URL: '\nhttp://writeestoriess.onrender.com/auth/google/callback' }, envFile }), /HTTPS/)
+})
