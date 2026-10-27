@@ -1,4 +1,5 @@
 const express = require('express')
+const { markStage, reportError } = require('../middleware/diagnostics')
 const router = express.Router()
 const { ensureAuth } = require('../middleware/auth')
 const { stripTags } = require('../helpers/hbs')
@@ -28,12 +29,13 @@ router.get('/add', ensureAuth, (req, res) => {
 router.post('/', ensureAuth, async (req, res) => {
     const values = formValues(req.body)
     if (!validStory(req.body)) return formFailure(res, 'stories/add', values, 400, 'Add a title and story, and choose public or private before saving.')
+    markStage('story.create')
     try {
         await Story.create({ ...values, user: req.user.id })
         req.session.notice = 'Your story has been saved.'
         res.redirect('/dashboard')
     } catch (err) {
-        console.error(err)
+        reportError(err, req, res)
         return formFailure(res, 'stories/add', values, 500, 'We couldn’t save your story. Your words are still here. Please try again.')
     }
 })
@@ -41,18 +43,20 @@ router.post('/', ensureAuth, async (req, res) => {
 router.get('/', ensureAuth, async (req, res) => {
     const { search, filter, error } = feedOptions(req.query)
     if (error) return res.status(400).render('stories/feed', { pageTitle: 'For you', search, feedError: error })
+    markStage('story.feed')
     try {
         const results = await Story.find(filter).populate('user', 'displayName image').sort({ createdAt: -1, _id: -1 }).limit(PAGE_SIZE + 1).lean()
         const stories = results.slice(0, PAGE_SIZE)
         const nextUrl = results.length > PAGE_SIZE ? nextFeedUrl(stories[stories.length - 1], search) : null
         res.render('stories/feed', { stories, nextUrl, search, pageTitle: 'For you', isContinuation: Boolean(req.query.before) })
     } catch (err) {
-        console.error(err)
+        reportError(err, req, res)
         res.status(500).render('error/500', { pageTitle: 'Something went wrong' })
     }
 })
 
 router.get('/:id', ensureAuth, async (req, res) => {
+    markStage('story.read')
     try {
         const story = await Story.findById(req.params.id).populate('user').lean()
         if (!story || !story.user || (story.status !== 'public' && String(story.user._id) !== String(req.user.id))) {
@@ -60,25 +64,27 @@ router.get('/:id', ensureAuth, async (req, res) => {
         }
         res.render('stories/show', { story, pageTitle: story.title })
     } catch (err) {
-        console.error(err)
+        reportError(err, req, res)
         res.status(err.name === 'CastError' ? 404 : 500).render(err.name === 'CastError' ? 'error/404' : 'error/500')
     }
 })
 
 router.get('/edit/:id', ensureAuth, async (req, res) => {
+    markStage('story.edit')
     try {
         const story = await Story.findOne({ _id: req.params.id }).lean()
         if (!story) return res.status(404).render('error/404', { pageTitle: 'Story not found' })
         if (String(story.user) !== String(req.user.id)) return res.redirect('/stories')
         res.render('stories/edit', { story, pageTitle: 'Edit story' })
     } catch (err) {
-        console.error(err)
+        reportError(err, req, res)
         res.status(err.name === 'CastError' ? 404 : 500).render(err.name === 'CastError' ? 'error/404' : 'error/500')
     }
 })
 
 router.put('/:id', ensureAuth, async (req, res) => {
     const values = { ...formValues(req.body), _id: req.params.id }
+    markStage('story.update')
     try {
         const story = await Story.findById(req.params.id).lean()
         if (!story) return res.status(404).render('error/404', { pageTitle: 'Story not found' })
@@ -88,31 +94,33 @@ router.put('/:id', ensureAuth, async (req, res) => {
         req.session.notice = 'Your changes have been saved.'
         res.redirect('/dashboard')
     } catch (err) {
-        console.error(err)
+        reportError(err, req, res)
         return formFailure(res, 'stories/edit', values, 500, 'We couldn’t save your changes. Your words are still here. Please try again.')
     }
 })
 
 router.delete('/:id', ensureAuth, async (req, res) => {
+    markStage('story.delete')
     try {
         const result = await Story.deleteOne({ _id: req.params.id, user: req.user.id })
         if (!result.deletedCount) return res.status(404).render('error/404', { pageTitle: 'Story not found' })
         req.session.notice = 'Your story has been deleted.'
         res.redirect('/dashboard')
     } catch (err) {
-        console.error(err)
+        reportError(err, req, res)
         return res.status(500).render('error/500', { pageTitle: 'Something went wrong' })
     }
 })
 
 router.get('/user/:userId', ensureAuth, async (req, res) => {
+    markStage('author.load')
     try {
         const author = await User.findById(req.params.userId).lean()
         if (!author) return res.status(404).render('error/404', { pageTitle: 'Author not found' })
         const stories = await Story.find({ user: req.params.userId, status: 'public' }).populate('user').lean()
         res.render('stories/index', { stories, authorName: author.displayName, pageTitle: 'Stories by ' + author.displayName })
     } catch (err) {
-        console.error(err)
+        reportError(err, req, res)
         res.status(err.name === 'CastError' ? 404 : 500).render(err.name === 'CastError' ? 'error/404' : 'error/500')
     }
 })

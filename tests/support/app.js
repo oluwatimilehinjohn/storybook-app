@@ -7,6 +7,7 @@ const Story = require('../../models/Story')
 const User = require('../../models/User')
 const helpers = require('../../helpers/hbs')
 const { configurePresentation } = require('../../config/presentation')
+const { requestDiagnostics, errorHandler } = require('../../middleware/diagnostics')
 
 const owner = { _id: '507f1f77bcf86cd799439011', id: '507f1f77bcf86cd799439011', firstName: 'Alex', displayName: 'Alex Morgan' }
 const other = { _id: '507f1f77bcf86cd799439012', id: '507f1f77bcf86cd799439012', firstName: 'Jamie', displayName: 'Jamie Park' }
@@ -67,6 +68,7 @@ User.findById = id => ({ lean: async () => [owner, other].find(user => user._id 
 
 const createApp = () => {
     const app = express()
+    app.use(requestDiagnostics)
     configurePresentation(app)
     app.engine('.hbs', exphbs.engine({ helpers, defaultLayout: 'main', extname: '.hbs' }))
     app.set('view engine', '.hbs')
@@ -96,6 +98,7 @@ const createApp = () => {
     app.use('/', require('../../routes/index'))
     app.use('/stories', require('../../routes/stories'))
     app.use((req, res) => res.status(404).render('error/404'))
+    app.use(errorHandler)
     return app
 }
 

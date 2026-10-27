@@ -10,7 +10,6 @@ try {
 
 const express = require('express')
 const mongoose = require('mongoose')
-const morgan = require('morgan')
 const exphbs = require('express-handlebars')
 const methodOverride = require('method-override')
 const passport = require('passport')
@@ -18,11 +17,13 @@ const session = require('express-session')
 const MongoStore = require('connect-mongo')(session)
 const connectDB = require('./config/db')
 const { configurePresentation } = require('./config/presentation')
+const { requestDiagnostics, traceMiddleware, errorHandler } = require('./middleware/diagnostics')
 
 //passport config
 require('./config/passport')(passport)
 
 const app = express()
+app.use(requestDiagnostics)
 configurePresentation(app)
 // Render terminates HTTPS at its reverse proxy.
 if (configuration.isProduction) app.set('trust proxy', 1)
@@ -40,10 +41,7 @@ app.use(methodOverride(function (req, res) {
     return method
   }
 }))
-//logging
-if (process.env.NODE_ENV === 'development') {
-    app.use(morgan('dev'))
-}
+// Request diagnostics intentionally omit query strings, including OAuth codes.
 
 //handlebars helpers
 const helpers = require('./helpers/hbs')
@@ -55,7 +53,7 @@ app.engine('.hbs', exphbs.engine({
 app.set('view engine', '.hbs');
 
 //sessions
-app.use(session({
+app.use(traceMiddleware('session.load', session({
     secret: process.env.SESSION_SECRET,
     saveUninitialized: false,
     resave: false,
@@ -65,11 +63,11 @@ app.use(session({
         sameSite: 'lax'
     },
     store: new MongoStore({ mongooseConnection: mongoose.connection })
-}))
+})))
 
 //passport middleware
 app.use(passport.initialize())
-app.use(passport.session())
+app.use(traceMiddleware('session.deserialize', passport.session()))
 
 //set global variable
 app.use(function (req, res, next){
@@ -84,11 +82,7 @@ app.use('/stories', require('./routes/stories'))
 app.use('/auth', require('./middleware/auth-error'))
 
 app.use((req, res) => res.status(404).render('error/404', { pageTitle: 'Page not found' }))
-app.use((err, req, res, next) => {
-    console.error(err)
-    if (res.headersSent) return next(err)
-    res.status(500).render('error/500', { pageTitle: 'Something went wrong' })
-})
+app.use(errorHandler)
 
 // Only accept requests once the real database connection is established.
 connectDB()

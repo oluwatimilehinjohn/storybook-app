@@ -65,7 +65,24 @@ This project uses **npm**, with a committed `package-lock.json` (lockfile versio
 
 ### Startup and verification
 
-If Google returns to `/auth/google/callback` and the browser shows an internal server error, inspect **Render runtime logs** for that request (not only the build output). New sign-in failures emit a safe `[authentication]` line with a stage and error category. `stage=google` points to the provider/token exchange: confirm the client ID and secret belong to the same OAuth client and the HTTPS callback matches. `stage=account` points to the MongoDB user lookup/create step. `stage=session` points to saving the signed-in session. These categories guide diagnosis; the browser's generic error alone does not establish the cause.
+If a request fails, its browser error page displays an **Error reference**. Search application logs for that ID to find the matching JSON `request.error` and `request.completed` events. The same reference is in the `X-Request-ID` response header. These diagnostics work locally and on any host; they do not depend on Render logs specifically.
+
+Each error records the timestamp, HTTP method, route pattern, failure stage, timing, safe error category/code, relevant source file and line locations, and the stages reached during that request. `release` and the `X-Storybooks-Release` header use `RENDER_GIT_COMMIT` or `GIT_COMMIT` when available (otherwise `local`). Incoming request IDs are not trusted; the app generates its own.
+
+| Stage | Where to investigate |
+| --- | --- |
+| `google.redirect` | Starting the Google authorization request |
+| `google.token` | Exchanging the code; `invalid_client` points to client credentials, while `invalid_grant` can indicate an expired/reused code or callback mismatch |
+| `google.profile` | Retrieving the Google profile after token exchange; check the logged upstream status/network code |
+| `account.profile` | Validating the Google account identifier |
+| `account.lookup` / `account.create` | MongoDB user lookup or creation; validation field names and selected database codes are included without values |
+| `session.load` / `session.deserialize` | Reading the session or restoring its user |
+| `session.save` / `session.logout` | Completing login or logout |
+| `dashboard.load`, `story.*`, `author.load` | The corresponding application operation |
+| `view.render` | Rendering the error page itself; a plain-text response preserves the same reference if the template fails |
+
+Logs deliberately exclude query strings, OAuth codes, access tokens, cookies, authorization headers, bodies, user profile values, database URIs, raw error messages and provider response bodies. Source locations are relative to the application. The old development access logger was replaced so it cannot print callback query strings. Existing form recovery keeps submitted content on the page and includes an error reference on failed saves.
+
 
 The callback handles optional Google profile names/photos, and an absent family name no longer blocks creating a user. Existing accounts and story ownership remain unchanged; no data migration is needed. Missing Google account IDs still fail authentication. Session failures discard the incomplete login, and the error page offers a fresh sign-in. Do not refresh or share callback URLs containing authorization codes. Start again from the site's sign-in button.
 

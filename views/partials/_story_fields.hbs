@@ -1,5 +1,5 @@
 <div class="editor-main">
-    {{#if formError}}<div class="notice notice-error" role="alert">{{formError}}</div>{{/if}}
+    {{#if formError}}<div class="notice notice-error" role="alert">{{formError}}{{> _error_reference}}</div>{{/if}}
     <div class="field-group"><label for="title">Story title <span class="required-note">(required)</span></label><input type="text" id="title" name="title" value="{{story.title}}" placeholder="Give your story a title" required aria-describedby="title-error"><p class="field-error" id="title-error" hidden>Please give your story a title.</p></div>
     <div class="field-group"><div class="field-label-row"><label for="body">Your story <span class="required-note">(required)</span></label><span class="word-count" data-word-count></span></div><textarea name="body" id="body" rows="14" placeholder="It began with…" required aria-describedby="body-help body-error">{{story.body}}</textarea><p id="body-help" class="field-hint">There’s no perfect place to start. Just make it your own.</p><p class="field-error" id="body-error" hidden>Add a few words before saving your story.</p></div>
     <p class="field-error" data-form-error role="alert" hidden></p>

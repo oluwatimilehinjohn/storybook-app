@@ -1717,3 +1717,6 @@ input::placeholder,textarea::placeholder {
         animation:none!important
     }
 }
+
+.error-reference { margin-top:20px; font-size:.8rem; overflow-wrap:anywhere; color:var(--muted) }
+.error-reference code { color:var(--ink); user-select:all }

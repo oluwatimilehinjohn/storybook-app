@@ -6,6 +6,7 @@ const passport = require('passport')
 const exphbs = require('express-handlebars')
 const User = require('../models/User')
 const { configurePresentation } = require('../config/presentation')
+const { requestDiagnostics, traceMiddleware, errorHandler } = require('../middleware/diagnostics')
 const account = { id: '507f1f77bcf86cd799439011', googleId: 'google-test-account' }
 let strategy
 let server
@@ -37,15 +38,17 @@ before(async () => {
     } })
     User.findById = (id, done) => done(null, id === account.id ? account : null)
     const app = express()
+    app.use(requestDiagnostics)
     configurePresentation(app)
     app.engine('.hbs', exphbs.engine({ helpers: require('../helpers/hbs'), defaultLayout: 'main', extname: '.hbs' }))
     app.set('view engine', '.hbs')
-    app.use(session({ secret: 'test-only-session-secret-with-more-than-32-characters', resave: false, saveUninitialized: false, store }))
+    app.use(traceMiddleware('session.load', session({ secret: 'test-only-session-secret-with-more-than-32-characters', resave: false, saveUninitialized: false, store })))
     app.use(passport.initialize())
-    app.use(passport.session())
+    app.use(traceMiddleware('session.deserialize', passport.session()))
     app.use('/auth', require('../routes/auth'))
     app.use('/auth', require('../middleware/auth-error'))
     app.get('/dashboard', require('../middleware/auth').ensureAuth, (req, res) => res.json({ id: req.user.id }))
+    app.use(errorHandler)
     server = app.listen(0, '127.0.0.1')
     await new Promise(resolve => server.once('listening', resolve))
     origin = 'http://127.0.0.1:' + server.address().port
@@ -111,9 +114,13 @@ test('provider and session errors offer a fresh sign-in and log only safe diagno
             const body = await response.text()
             assert.match(body, /Try Google sign-in again/)
             assert.doesNotMatch(body, /sensitive-|invalid_client/)
-            assert.ok(messages.some(message => message.includes('stage=' + stage)))
+            const reference = response.headers.get('x-request-id')
+            assert.ok(body.includes(reference))
+            const record = messages.map(message => JSON.parse(message)).find(record => record.requestId === reference)
+            assert.equal(record.stage, stage === 'google' ? 'google.token' : 'session.save')
+            assert.equal(record.route, '/auth/google/callback')
         }
-        assert.match(messages.join('\n'), /code=invalid_client/)
+        assert.match(messages.join('\n'), /"code":"invalid_client"/)
         assert.doesNotMatch(messages.join('\n'), /sensitive-/)
     } finally { outcome = 'success'; failSession = false; console.error = log }
 })
@@ -126,4 +133,25 @@ test('declined sign-in returns home without creating an authenticated session', 
         assert.equal(response.headers.get('location'), '/')
         assert.equal(response.headers.get('set-cookie'), null)
     } finally { outcome = 'success' }
+})
+
+test('Google profile fetch errors identify the profile stage without exposing the access token', async t => {
+    const get = strategy._oauth2.get
+    t.after(() => { strategy._oauth2.get = get })
+    strategy._oauth2.get = (url, token, done) => done({ statusCode: 503, data: 'sensitive-provider-body' })
+    const error = await new Promise(resolve => strategy.userProfile('sensitive-access-token', resolve))
+    assert.equal(error.diagnosticStage, 'google.profile')
+    const safe = require('../middleware/diagnostics').safeError(error)
+    assert.equal(safe.upstreamStatus, 503)
+    assert.doesNotMatch(JSON.stringify(safe), /sensitive-/)
+})
+
+test('account diagnostics distinguish failed lookup from failed creation', async t => {
+    const find = User.findOne, create = User.create
+    t.after(() => { User.findOne = find; User.create = create })
+    User.findOne = async () => { throw new Error('lookup failed') }
+    await assert.rejects(verify({ id: account.googleId }), error => error.diagnosticStage === 'account.lookup')
+    User.findOne = async () => null
+    User.create = async () => { throw new Error('create failed') }
+    await assert.rejects(verify({ id: account.googleId }), error => error.diagnosticStage === 'account.create')
 })
